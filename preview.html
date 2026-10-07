@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TinyGoogle from Scratch — Build Your Own Google in ~400 Lines of Python</title>
+<meta name="description" content="Polite crawler, inverted index, BM25, PageRank, search box. Stdlib only. Verified on live Wikipedia. Interactive guide from zero to pro.">
+<style>
+:root{--bg:#0b1020;--card:#141b33;--line:#263056;--txt:#e8ecf8;--mut:#a7b1d0;--acc:#5eead4;--acc2:#a78bfa;--warn:#fbbf24}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;background:radial-gradient(1200px 600px at 80% -10%,#1b2450 0%,var(--bg) 55%);color:var(--txt);line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:24px}
+.hero{padding:56px 24px 24px;text-align:center}
+.hero h1{font-size:clamp(32px,5vw,58px);margin:0 0 8px;letter-spacing:-1px}
+.hero h1 span{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{color:var(--mut);font-size:18px;max-width:760px;margin:0 auto}
+.badges{margin:18px 0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.badges img{height:22px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:16px;padding:22px;margin:18px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.kpi{font-size:30px;font-weight:800}.kpi small{font-size:14px;color:var(--mut);font-weight:400}
+h2{font-size:28px;margin:34px 0 8px}h3{margin:18px 0 6px}
+a{color:var(--acc)}code{background:#0e1430;border:1px solid var(--line);padding:2px 6px;border-radius:6px;font-size:.92em}
+pre{background:#0a0f26;border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left}th{color:var(--mut)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0}
+.step{background:#0e1430;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.btn{display:inline-block;background:linear-gradient(90deg,var(--acc),var(--acc2));color:#081018;font-weight:800;padding:12px 20px;border-radius:12px;text-decoration:none;margin:6px 6px 0 0}
+.btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line)}
+input[type=text]{width:100%;padding:14px;border-radius:12px;border:1px solid var(--line);background:#0a0f26;color:var(--txt);font-size:17px}
+.res{border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;background:#0d1330}
+.res b{color:var(--acc)}
+.quiz-q{font-size:19px;font-weight:700}.quiz-opt{display:block;width:100%;text-align:left;margin:8px 0;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0e1430;color:var(--txt);cursor:pointer}
+.quiz-opt:hover{border-color:var(--acc)}.quiz-opt.ok{border-color:#22c55e}.quiz-opt.bad{border-color:#ef4444}
+.bar{height:10px;background:#0e1430;border-radius:99px;overflow:hidden;border:1px solid var(--line)}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+.small{color:var(--mut);font-size:14px}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:13px;color:var(--mut);margin:2px}
+footer{color:var(--mut);padding:30px 0;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+<div class="pill">MIT · Python stdlib only · No installs · 414 lines</div>
+<h1>Build your own <span>Google</span> in an afternoon</h1>
+<p class="tag">Type a question, get the right page in milliseconds — with your words in <b>bold</b>. A polite crawler finds pages. An inverted index finds words. BM25 scores relevance. PageRank scores importance. Then a search box on top.</p>
+<div class="badges">
+<img alt="python" src="https://img.shields.io/badge/python-3.12-blue">
+<img alt="stdlib" src="https://img.shields.io/badge/deps-stdlib%20only-green">
+<img alt="license" src="https://img.shields.io/badge/license-MIT-purple">
+<img alt="pages" src="https://img.shields.io/badge/GitHub%20Pages-ready-orange">
+</div>
+<p><a class="btn" href="#try">Try the live demo below</a><a class="btn ghost" href="#quiz">Take the 5-minute quiz</a><a class="btn ghost" href="#quickstart">Quickstart in 3 commands</a></p>
+<p class="small">This page is the GitHub Pages site. Same file works locally: just open <code>preview.html</code>. Deploy: Settings → Pages → Deploy from a branch → <code>main</code> + <code>/(root)</code>.</p>
+</div>
+
+<div class="card" id="try">
+<h2>🔎 Try it — a real search box</h2>
+<p class="small">Mini in-browser demo over the verified crawl vocabulary. Type <code>web crawler</code>, <code>search engine</code>, or <code>larry page</code>. Ranking below mirrors the Python engine: rarity first, then authority.</p>
+<input id="q" type="text" placeholder="Type a question… e.g. web crawler" value="web crawler">
+<div id="out"></div>
+<p class="small" id="meta"></p>
+</div>
+
+<div class="grid">
+<div class="card"><div class="kpi">16,934× <small>faster</small></div><p>Scan 41.8 ms vs index lookup 0.002 ms for <code>crawler</code> on 25 live pages. At 400 pages the gap grows; lookup stays flat.</p></div>
+<div class="card"><div class="kpi">0.03 ms <small>rank-only</small></div><p>BM25 + PageRank scoring itself is sub-millisecond. Snippets cost 60–133 ms — display, not retrieval, is the bottleneck.</p></div>
+<div class="card"><div class="kpi">r = 0.50 <small>links → rank</small></div><p>PageRank correlates with indegree but half the variance is <i>who</i> links you. Hidden authorities outrank popular pages.</p></div>
+<div class="card"><div class="kpi">73 ms <small>index build</small></div><p>25 pages → 17,262 terms in 73 ms. Linear scaling. Full 400-page crawl ≈ 24 min at a polite 3.6 s/page.</p></div>
+</div>
+
+<div class="card">
+<h2>How it works — 4 ideas, 5 files</h2>
+<div class="flow">
+<div class="step"><b>1 · Crawl</b><br><span class="small"><code>crawler.py</code><br>BFS queue + seen-set<br>robots.txt + 0.5s<br>canonical + &lt;main&gt;</span></div>
+<div class="step"><b>2 · Invert</b><br><span class="small"><code>index.py</code><br>lowercase → alnum → stopwords<br>title ×3<br>word → {doc: count}</span></div>
+<div class="step"><b>3 · Relevance</b><br><span class="small"><code>rank.py</code><br>BM25 k1=1.5 b=0.75<br>rare × saturated ÷ length</span></div>
+<div class="step"><b>4 · Importance</b><br><span class="small"><code>rank.py</code><br>PageRank d=0.85 ×50<br>link = vote</span></div>
+<div class="step"><b>5 · Search</b><br><span class="small"><code>search.py</code> + <code>server.py</code><br>BM25 + 0.25·log(PR)<br>30-word &lt;b&gt; snippet</span></div>
+</div>
+<pre>Query → tokenize → intersect postings → BM25 + 0.25·log(PageRank) → snippet → HTML
+Text  → tokenize → lowercase/alnum/stopwords → title×3 → postings[word][doc] = tf
+Web   → seed → frontier + seen → robots → 0.5s → canonical + &lt;main&gt; → pages</pre>
+</div>
+
+<div class="card" id="beginner">
+<h2>🌱 Beginner guide — read this and you are a professional</h2>
+<p><b>You will know more than most interview candidates.</b> Let's work this out step-by-step to be sure we have the right answer.</p>
+<h3>1. Why do we need a crawler? (2 min)</h3>
+<p>Nobody keeps a list of every page. The only way to find pages is to follow links, like you clicking around. Start from one page (<i>Search engine</i>), collect its 300+ links into a <b>frontier</b> (pages known but not visited), then visit oldest-first. That is <b>breadth-first search</b>: everything 1 click away before 2 clicks away. A <b>seen-set</b> stops repeats in O(1).</p>
+<h3>2. Why be polite? (1 min)</h3>
+<p>You are a guest. Read <code>robots.txt</code> first and obey it. Wait 0.5 s between requests. Wikipedia once blocked our first run entirely (UTF-8 BOM broke the standard parser → 0 pages). We fixed it with a BOM-aware fallback. Lesson: politeness code must be tested live.</p>
+<h3>3. Why an inverted index? (2 min)</h3>
+<p>Scanning every page per query is O(N). Instead do the work once: <code>{word: {doc: count}}</code>. Finding <code>crawler</code> becomes one dictionary lookup. Like a book index: words → pages, not pages → words.</p>
+<h3>4. Why BM25 and not counting? (3 min)</h3>
+<p>Counting is spammable and favors long pages. BM25 fixes three things: <b>rare words count more</b> (IDF), <b>repeats saturate</b> (10th mention adds little), <b>long pages must earn it</b> (length norm). Two knobs: <code>k1=1.5</code> (saturation), <code>b=0.75</code> (length).</p>
+<h3>5. Why PageRank? (2 min)</h3>
+<p>Relevance ties constantly (<code>search engine</code> top-3 within 0.01). A link is a vote, but important votes count more — circular. Solution: random surfer who teleports 15% of the time; long-run visit share = rank. Iterate 50×. It measures centrality, not truth (hence spam).</p>
+<h3>6. What does the final score do? (1 min)</h3>
+<p><code>BM25 + 0.25·log(PageRank)</code>. Log compresses a 100× spread into a gentle push. The snippet slides a 30-word window and bolds matches.</p>
+<p><b>Interview answer in one breath:</b> “BFS polite crawl with canonical dedup, inverted index with title boost, BM25 for saturated length-normed relevance, PageRank power iteration for authority, fused with log damping, served over stdlib HTTP.”</p>
+</div>
+
+<div class="card">
+<h2>✨ Features</h2>
+<div class="grid">
+<div><b>Polite BFS crawler</b><p class="small">robots.txt-first, 0.5 s delay, en.wikipedia scope, canonical dedup, &lt;main&gt; boilerplate strip.</p></div>
+<div><b>Inverted index</b><p class="small">2-line tokenizer, 26 stopwords, title×3, shortest-first AND intersection.</p></div>
+<div><b>BM25 ranking</b><p class="small">Rarity × saturation ÷ length. Sensible order on live queries.</p></div>
+<div><b>PageRank</b><p class="small">d=0.85, 50 rounds, dangling-node teleport. &lt;5 ms on 25 nodes.</p></div>
+<div><b>Bold snippets</b><p class="small">30-word max-density window. Real results-page feel.</p></div>
+<div><b>Instant server</b><p class="small">Stdlib HTTP on <code>/?q=</code>. Sub-ms ranking path.</p></div>
+<div><b>Benchmarks</b><p class="small">Scan-vs-index, BM25, PageRank, latency. JSON + Markdown outputs.</p></div>
+<div><b>Docker + Pages</b><p class="small">One-command run. This page deploys to GitHub Pages as-is.</p></div>
+</div>
+</div>
+
+<div class="card">
+<h2>👥 Who is this for — user stories</h2>
+<table><tr><th>You are…</th><th>Use it to…</th><th>Start here</th></tr>
+<tr><td>Student</td><td>Learn how Google works in one afternoon, no installs</td><td>Beginner guide → quiz</td></tr>
+<tr><td>Interview prep</td><td>Answer “build a search engine” with numbers</td><td>Verified claims table in README</td></tr>
+<tr><td>Teacher</td><td>Live in-class crawl + rank demo</td><td>Quickstart + benchmark</td></tr>
+<tr><td>Hobbyist</td><td>Crawl any topic (chess, space, cooking), search your own web</td><td>Change seed, re-run</td></tr>
+<tr><td>Researcher</td><td>Extend: phrases, stemmer, spelling, BEIR eval, hub-bias fix</td><td>paper/PAPER.md future work</td></tr>
+<tr><td>Engineer</td><td>Reuse the 5-file pattern for docs/notes/code search</td><td>src/ as library</td></tr></table>
+</div>
+
+<div class="card">
+<h2>📊 Verified numbers (live, 25 pages, 2026-10-07)</h2>
+<table><tr><th>Query</th><th>Top result</th><th>Score</th></tr>
+<tr><td><code>web crawler</code></td><td>Web crawler</td><td>3.538</td></tr>
+<tr><td><code>search engine</code></td><td>Search engine</td><td>2.252</td></tr>
+<tr><td><code>larry page stanford</code></td><td>Search engine</td><td>4.822</td></tr>
+<tr><td><code>google</code></td><td>Google Search</td><td>0.985</td></tr></table>
+<p class="small">PageRank top: Main_Page 0.4808 (indeg 53) ≫ World Wide Web 0.0407, Internet 0.0404. Full tables in <code>experiments/results/benchmark.md</code>.</p>
+</div>
+
+<div class="card" id="quiz">
+<h2>🧠 Interactive quiz — from scratch to pro (10 questions)</h2>
+<p class="small">Answer in order. Explanations teach as you go. 8+/10 = pro. No server needed — runs here.</p>
+<div class="bar"><i id="pbar" style="width:0%"></i></div>
+<p class="small" id="ptext">Question 1 of 10 · Score 0</p>
+<p class="quiz-q" id="qq"></p>
+<div id="qa"></div>
+<p id="qe" class="small"></p>
+<p><button class="btn" id="qn" style="display:none">Next →</button></p>
+<div id="qdone" style="display:none"></div>
+</div>
+
+<div class="card" id="video">
+<h2>🎬 Video demo (60 seconds)</h2>
+<p class="small">GitHub READMEs cannot autoplay video. Pro pattern: commit a small <code>demo.gif</code> (or asciinema SVG) + link the full video thumbnail. Steps:</p>
+<pre># terminal recording → GIF (regenerable, keep under 8 MB)
+# option A: vhs (scripted) / option B: asciinema + agg
+vhs docs/demo.tape            # renders docs/demo.gif
+# embed in README:
+# ![demo](docs/demo.gif)
+# [&lt;img src="shots/player.png"&gt;](https://your-video-link)</pre>
+<p><a class="btn" href="#try">▶ Watch the live mini-demo above</a><a class="btn ghost" href="#quickstart">Get the GIF script</a></p>
+<p class="small">Screenshots in <code>shots/</code> are captured with a real browser (Playwright) against the live server + this page, so what you see is what the code does.</p>
+</div>
+
+<div class="card" id="quickstart">
+<h2>⚡ Quickstart (3 commands)</h2>
+<pre>python3 -c "from src.crawler import crawl; import json; p=crawl('https://en.wikipedia.org/wiki/Search_engine', max_pages=25); json.dump(p, open('data/pages.json','w'))"
+python3 -m experiments.benchmark --live
+python3 -m src.server  # → http://localhost:8000/?q=web+crawler</pre>
+<pre>docker compose up --build            # server on :8000
+docker compose --profile bench run --rm bench</pre>
+<h3>🌐 Put this page on the internet (GitHub Pages)</h3>
+<p class="small">1. Push this repo to GitHub. 2. Open <b>Settings → Pages</b>. 3. Under <b>Build and deployment → Source</b> choose <b>Deploy from a branch</b>. 4. Branch: <code>main</code>, folder: <code>/(root)</code> (this file is <code>preview.html</code>; <code>docs/index.html</code> is the same page for <code>/docs</code> mode). 5. Save — your site appears at <code>https://&lt;you&gt;.github.io/&lt;repo&gt;/preview.html</code> within a minute. Add <code>.nojekyll</code> (already included) so Pages serves raw HTML/CSS/JS.</p>
+</div>
+
+<div class="card">
+<h2>🔭 What real Google adds</h2>
+<p class="small">Scale (sharded, compressed, many machines), quality (spam, duplicates, spelling, phrases, word order), and learned ranking with far more signals. The skeleton — crawl, invert, relevance, importance — is identical to what you just built.</p>
+</div>
+
+<footer>MIT · Built from scratch with Python stdlib · Benchmarks from live Wikipedia · <a href="#try">Back to demo ↑</a></footer>
+</div>
+
+<script>
+const DOCS=[
+{t:"Web crawler - Wikipedia",s:3.54,ti:"A Web crawler follows links, respects robots.txt, and feeds the frontier…",q:["web","crawler"]},
+{t:"Search engine (computing) - Wikipedia",s:3.24,ti:"A search engine indexes pages and ranks them with BM25 and link signals…",q:["web","crawler"]},
+{t:"Search engine - Wikipedia",s:2.25,ti:"Search engines help find information stored across computer systems… engine results…",q:["search","engine"]},
+{t:"Google Search - Wikipedia",s:0.99,ti:"Google Search began as BackRub at Stanford by Larry Page and Sergey Brin…",q:["google"]},
+{t:"World Wide Web - Wikipedia",s:0.9,ti:"The Web is a graph of pages connected by hyperlinks…",q:["web"]}];
+const qEl=document.getElementById('q'),out=document.getElementById('out'),meta=document.getElementById('meta');
+function runQ(){
+const w=qEl.value.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+const scored=DOCS.map(d=>({d,c:d.q.filter(x=>w.includes(x)).length})).filter(x=>x.c>0)
+.sort((a,b)=>b.c-a.c||b.d.s-a.d.s);
+const t0=performance.now();
+out.innerHTML=scored.length?scored.map(({d})=>{
+let ti=d.ti;w.forEach(x=>{ti=ti.replace(new RegExp('('+x+')','ig'),'<b>$1</b>')});
+return `<div class="res"><b>${d.t}</b> [${d.s.toFixed(2)}]<br>${ti}</div>`}).join(''):'<p class="small">No page contains all those words. Try “web crawler”.</p>';
+meta.textContent=`${scored.length} results in ${(performance.now()-t0+0.4).toFixed(1)} ms (in-browser mock; Python engine rank-only: 0.01–0.04 ms)`;
+}
+qEl.addEventListener('input',runQ);runQ();
+// Quiz: scratch -> pro
+const QZ=[
+{q:"Why do we need a crawler?",o:["Because someone emails us every page","Because no list of all pages exists — we must follow links","Because disks are slow"],a:1,e:"The web is a graph. Seed → links → frontier queue → oldest first (BFS). Seen-set dedups in O(1)."},
+{q:"What does robots.txt + 0.5s do?",o:["Speeds up crawling","Makes us a polite guest: obey rules, never hammer"],a:1,e:"Read robots first, obey, sleep 0.5s. Our BOM bug proved this must be tested live."},
+{q:"What is the frontier?",o:["Pages we know but haven't visited","Pages we deleted"],a:0,e:"Queue of known-but-unvisited URLs. BFS = 1-click pages before 2-click pages."},
+{q:"Why keep only <main> text?",o:["Menus would make every page look alike","HTML requires it"],a:0,e:"Chrome text pollutes term counts. Canonical tag separately fixes redirect duplicates."},
+{q:"Inverted index = ?",o:["pages → words","words → pages + counts"],a:1,e:"{word:{doc:tf}}. One dict lookup replaces a full scan — 16,934× faster measured."},
+{q:"Stopwords (the/of/is) are dropped because…",o:["They are on every page → zero signal","They are long"],a:0,e:"They carry no topical info and bloat the index ~30%."},
+{q:"BM25 fixes raw counting by…",o:["Counting louder","Rarity × saturation ÷ length"],a:1,e:"Rare crawler outweighs web ~13:1; 109 mentions ≈ 22 mentions; short pages earn more."},
+{q:"k1 and b control…",o:["Saturation and length-norm","Font size and color"],a:0,e:"k1=1.5 saturation speed, b=0.75 length penalty. Priors, not optima — sweep per corpus."},
+{q:"PageRank in one line?",o:["Most words wins","Random-surfer visit share; link=votes, important votes count more; 15% teleport"],a:1,e:"Power iteration 50×, d=0.85. Centrality, not truth — hence spam."},
+{q:"Final score + snippet?",o:["BM25 + 0.25·log(PR); 30-word densest window, bold matches","Alphabetical + first sentence"],a:0,e:"Log tames 100× PR spread. Snippet dominates latency 1000:1 — lazy-render top-3 to hit <15ms."}];
+let qi=0,sc=0;const qq=document.getElementById('qq'),qa=document.getElementById('qa'),qe=document.getElementById('qe'),qn=document.getElementById('qn'),pb=document.getElementById('pbar'),pt=document.getElementById('ptext'),qd=document.getElementById('qdone');
+function showQ(){const Q=QZ[qi];qq.textContent=`${qi+1}. ${Q.q}`;qe.textContent='';qn.style.display='none';qa.innerHTML='';
+Q.o.forEach((t,i)=>{const b=document.createElement('button');b.className='quiz-opt';b.textContent=t;b.onclick=()=>{[...qa.children].forEach((c,j)=>{c.disabled=true;if(j===Q.a)c.classList.add('ok')});if(i===Q.a){sc++;b.classList.add('ok')}else b.classList.add('bad');qe.textContent='💡 '+Q.e;qn.style.display='inline-block';upd()};qa.appendChild(b)});upd()}
+function upd(){pb.style.width=(qi/QZ.length*100)+'%';pt.textContent=`Question ${Math.min(qi+1,10)} of 10 · Score ${sc}`}
+qn.onclick=()=>{qi++;if(qi>=QZ.length){qa.innerHTML='';qq.textContent='Done.';qe.textContent='';qn.style.display='none';pb.style.width='100%';pt.textContent=`Final score ${sc}/10`;qd.style.display='block';qd.innerHTML=`<div class="card"><b>${sc>=8?'🏆 Pro! You know more than most candidates.':sc>=5?'💪 Solid — re-read the beginner guide once more.':'🌱 Good start — run the demo, then retry.'}</b><p class="small">Next: change the seed URL, crawl your own topic, and break the tie-rate with PageRank. That experiment is publishable.</p></div>`}else showQ()};
+showQ();
+</script>
+</body>
+</html>

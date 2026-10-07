@@ -4,15 +4,154 @@
 > This is not Google. It is a search engine you build today, from scratch,
 > in ~400 lines of Python. No libraries to install. Just the standard library, and four ideas.
 
-A complete, verified re-implementation of the video strategy
-**from zero to hero**: polite BFS crawler → inverted index → BM25 → PageRank → HTTP search box,
-validated end-to-end on **live Wikipedia data (25 pages, 2026-10-07)** with reproducible benchmarks.
+![python](https://img.shields.io/badge/python-3.12-blue)
+![stdlib](https://img.shields.io/badge/deps-stdlib%20only-green)
+![license](https://img.shields.io/badge/license-MIT-purple)
+![pages](https://img.shields.io/badge/GitHub%20Pages-ready-orange)
 
+## Executive summary — read this in 30 seconds
+
+**What it is:** a complete web search engine in 5 Python files: a polite crawler finds pages, an inverted index finds words, BM25 scores how well a page matches your words, PageRank scores how important a page is, and a search box ties it together.
+
+**Why it is different:** every number is verified on live Wikipedia data (25 pages, 2026-10-07). Index lookup is **16,934× faster** than scanning. Ranking itself takes **0.01–0.04 ms**. The interactive web page (`preview.html`) teaches you from zero to professional with a live demo and a 10-question quiz. One command runs it locally, one command runs it in Docker, three clicks publish the showcase to GitHub Pages.
+
+**Who it is for:** students learning how Google works in one afternoon · interview candidates who want numbers, not hand-waving · teachers running a live crawl in class · hobbyists crawling any topic · researchers extending phrases, stemming, and evaluation.
+
+![Search demo — real results for "web crawler" with bold snippets](shots/search-demo.png)
+
+*Above: the actual server answering `?q=web+crawler` — 7 results, Web crawler first, matches in bold. Below: the Pages showcase.*
+
+![Pages showcase hero with live mini-demo](shots/preview-hero.png)
+
+**🌐 Live showcase:** open [`preview.html`](preview.html) locally, or publish it free — Settings → Pages → Deploy from a branch → `main` + `/(root)` — and share `https://<you>.github.io/<repo>/preview.html`. The same file is also at [`docs/index.html`](docs/index.html) for `/docs` mode. `docs/demo.tape` regenerates the terminal GIF (`vhs docs/demo.tape`).
+
+## Table of contents
+
+- [Quickstart in 3 commands](#quickstart-in-3-commands)
+- [🌱 Beginner guide — read this and you are a professional](#-beginner-guide--read-this-and-you-are-a-professional)
+- [✨ Features](#-features)
+- [👥 Who is this for — user stories](#-who-is-this-for--user-stories)
+- [🎬 Video demo](#-video-demo)
+- [🌐 GitHub Pages — your repo as a website](#-github-pages--your-repo-as-a-website)
+- [🧠 Interactive quiz — from scratch to pro](#-interactive-quiz--from-scratch-to-pro)
+- [1. Verified claims (live data, not slides)](#1-verified-claims-live-data-not-slides)
+- [2. Repo layout](#2-repo-layout)
+- [3. The four ideas (and why each is necessary)](#3-the-four-ideas-and-why-each-is-necessary)
+- [4. Reproduce (local + Docker)](#4-reproduce-local--docker)
+- [5. Hidden patterns (the PhD seeds)](#5-hidden-patterns-the-phd-seeds)
+- [6. Benchmarks (live, 25 docs)](#6-benchmarks-live-25-docs)
+- [7. What real Google adds (and we deliberately omit)](#7-what-real-google-adds-and-we-deliberately-omit)
+- [8. Limitations & ethics](#8-limitations--ethics)
+- [9. Future work (publishable extensions)](#9-future-work-publishable-extensions)
+- [References](#references)
+- [License](#license)
+
+## Quickstart in 3 commands
+
+```bash
+# 1. crawl 25 pages (~90 s, polite 0.5 s between requests)
+python3 -c "from src.crawler import crawl; import json; p=crawl('https://en.wikipedia.org/wiki/Search_engine', max_pages=25); json.dump(p, open('data/pages.json','w'))"
+# 2. benchmark (writes experiments/results/benchmark.json + .md)
+python3 -m experiments.benchmark --live
+# 3. search — open http://localhost:8000/?q=web+crawler
+python3 -m src.server
 ```
-Query → tokenize → intersect postings → BM25 + 0.25·log(PageRank) → 30-word snippet → HTML
-Text  → tokenize → lowercase/alnum/stopwords → title×3 → postings[word][doc] = tf
-Web   → seed → BFS frontier + seen-set → robots.txt → 0.5 s → canonical + <main> → pages
+
+Docker:
+
+```bash
+docker compose up --build            # server on :8000
+docker compose --profile bench run --rm bench
 ```
+
+No installs. `requirements.txt` is intentionally empty — everything is `collections, re, math, urllib, html.parser, http.server`.
+
+## 🌱 Beginner guide — read this and you are a professional
+
+You will know more than most interview candidates. Let's work this out in a step-by-step way to be sure we have the right answer.
+
+**1. Why do we need a crawler? (2 minutes).**
+Nobody keeps a list of every page on the web. The only way to find pages is to follow links, just like you clicking around. Picture the web as dots (pages) and arrows (links). Start from one seed page (*Search engine*). Download it, pull out every link — about 300 of them go into a queue called the **frontier**: pages we know about but have not visited yet. Take the oldest from the front, download it, push its new links to the back. That is **breadth-first search**: everything one click away before anything two clicks away. A **seen-set** remembers every address ever seen so repeats are skipped instantly.
+
+**2. Why be polite? (1 minute).**
+You are a guest on someone else's server. Every site has `robots.txt` listing pages crawlers must not visit — read it first and obey it. Wait half a second between requests so you never hammer the server. Two real fixes from live crawling: every page declares its true address in a **canonical tag** (store once, else redirects duplicate you), and every page has the same menus — keep only the text inside `<main>`, skip menus/headers/scripts or every page looks alike.
+
+**3. Why an inverted index? (2 minutes).**
+Turn every page into words: lowercase, split on anything that is not a letter or digit (`The Web Crawler (1994)` → `web, crawler, 1994`). Drop **stop words** (`the, of, is`) — they are on every page so they tell you nothing. Now the naive way to answer `crawler` is to open every page and look (a **scan**: ~0.25 s for 400 pages). Instead do the work once ahead of time, like a book index: a dictionary from every word to the pages containing it and how many times. That is the **inverted index**. Finding `crawler` becomes one lookup — measured **12,226–16,934× faster** on 25 pages, and the gap grows with size. Words in the title count 3× because a title says what a page is about. Two words (`web crawler`) = intersect the two lists, shortest first.
+
+**4. Why BM25 and not counting? (3 minutes).**
+Counting is foolable (repeat a word 1,000 times), favors long pages, and treats every word equally (`web` is everywhere, `crawler` is rare). BM25 fixes all three: **rare words count more** (inverse document frequency: `crawler` ≈ 1.5 vs `web` ≈ 0.12, so one `crawler` ≈ thirteen `web`s), **repeats saturate** (109 mentions score <2% above 22 mentions), **long pages must earn it** (same count in a short page beats a long one). Two knobs: `k1 = 1.5` (how fast repeats saturate), `b = 0.75` (how strongly length is penalized).
+
+**5. Why PageRank? (2 minutes).**
+Try `search engine`: BM25 top-3 are within 0.01 — relevance alone ties. A **link is a vote**, but important votes count more (circular). Fix: imagine a **random surfer** clicking random links, occasionally jumping anywhere (15%). The share of time spent on each page is its **PageRank**. Compute in rounds: everyone starts equal, each round splits share across out-links, dangling pages spread evenly, repeat 50× until stable (**power iteration**, damping `0.85`). It measures link centrality, not truth — which is why link spam exists.
+
+**6. What does the final score do? (1 minute).**
+`final = BM25 + 0.25 × log(PageRank)`. Log turns a 100× PageRank spread into a gentle push; 0.25 was hand-tuned on a few queries. Then slide a 30-word window across the page, keep the densest spot, **bold** the matches. Serve over built-in HTTP: read `?q=` from the address, print HTML.
+
+**Interview answer in one breath:** “BFS polite crawl with canonical dedup and main-only text, inverted index with title boost and shortest-first intersection, BM25 for saturated length-normalized relevance, PageRank power iteration for authority fused with log damping, stdlib HTTP front end.”
+
+## ✨ Features
+
+- **Polite BFS crawler** (`src/crawler.py`) — frontier queue + O(1) seen-set, `robots.txt`-first with BOM-aware fallback, 0.5 s delay, `en.wikipedia.org/wiki/*` scope, canonical-URL dedup, `<main>`-only extraction skipping `script/style/header/nav/footer`.
+- **Inverted index** (`src/index.py`) — 2-line tokenizer (`[a-z0-9]+`, lowercase, 26 stopwords), title tokens ×3, `postings[word][doc] = tf`, stored `doc_len`/`avgdl`, shortest-first AND intersection.
+- **BM25 relevance** (`src/rank.py`) — `k1 = 1.5`, `b = 0.75`, rarity × saturation ÷ length; sensible live orderings (`web crawler` → Web crawler 3.54).
+- **PageRank authority** (`src/rank.py`) — damping `0.85`, 50 rounds, dangling-node teleport; <5 ms on 25 nodes; indegree correlation `r = 0.50`.
+- **Fusion + bold snippets** (`src/search.py`) — `BM25 + 0.25·log(PR)`, 30-word max-density window with `<b>` matches.
+- **Instant web UI** (`src/server.py`) — stdlib `http.server`, `/?q=words` → ranked HTML in milliseconds.
+- **Reproducible benchmarks** (`experiments/benchmark.py`) — E1 scan-vs-index, E2 BM25 ordering, E3 PageRank structure, E4 latency split; writes JSON + Markdown.
+- **One-command run** — local 3 commands or `docker compose up`; Pages showcase (`preview.html` + `docs/index.html` + `.nojekyll`); regenerable GIF script (`docs/demo.tape`).
+
+## 👥 Who is this for — user stories
+
+| You are… | Use it to… | Start here |
+|---|---|---|
+| Student | Learn how Google works in one afternoon with zero installs | Beginner guide → quiz → change the seed and crawl chess, space, or cooking |
+| Interview candidate | Answer “build a search engine” with real numbers (16,934×, 0.03 ms, r = 0.50) | Verified-claims table + one-breath answer above |
+| Teacher | Run a live 25-page crawl in class (~90 s), then rank `web crawler` live | Quickstart + `experiments/run_all.sh` |
+| Hobbyist | Crawl any topic you love and search your own little web | Change seed URL, `max_pages`, re-run benchmark |
+| Researcher | Publish: phrase search, stemmer, spelling fixer, per-field BM25 sweep, template-aware PageRank, BEIR-mini eval | `paper/PAPER.md` + Hidden patterns §5 |
+| Engineer | Reuse the 5-file pattern for docs / notes / code search in any project | Import `src/index.py` + `src/rank.py` as a library |
+
+## 🎬 Video demo
+
+GitHub READMEs cannot autoplay `<video>`. The professional pattern used here:
+
+1. Commit a small regenerable GIF: `vhs docs/demo.tape` → `docs/demo.gif` (keep under 8 MB; script is in the repo so the demo never goes stale).
+2. For long-form video, upload once (YouTube/Loom), then embed a clickable thumbnail in the README.
+3. Screenshots in `shots/` are captured against the real running server and the real `preview.html` in a real browser, so what you see is what the code does.
+
+```md
+![demo](docs/demo.gif)
+[![full video](shots/preview-hero.png)](https://your-video-link)
+```
+
+Recreate the terminal GIF anytime:
+
+```bash
+vhs docs/demo.tape   # needs vhs + ttyd + ffmpeg; see docs/demo.tape header
+```
+
+## 🌐 GitHub Pages — your repo as a website
+
+`preview.html` (root) and `docs/index.html` (identical copy) are a dependency-free static site: hero, live mini-demo, KPIs, architecture, beginner guide, features, user stories, verified numbers, 10-question quiz, video section, quickstart, Pages guide. No build step.
+
+Publish in ~1 minute:
+
+1. Push this repo to GitHub.
+2. Open **Settings → Pages**.
+3. Under **Build and deployment → Source** select **Deploy from a branch**.
+4. Branch: `main`, folder: `/(root)` (uses `preview.html`) — or `/docs` (uses `docs/index.html`).
+5. Save. Your site appears at `https://<you>.github.io/<repo>/preview.html`.
+
+`.nojekyll` (root + `docs/`) is already committed so Pages serves raw HTML/CSS/JS without Jekyll processing.
+
+## 🧠 Interactive quiz — from scratch to pro
+
+Open [`preview.html`](preview.html) and scroll to **Interactive quiz**. 10 questions in learning order (crawler → politeness → frontier → boilerplate → index → stopwords → BM25 → k1/b → PageRank → fusion). Each answer explains *why* immediately. Score 8+/10 = pro. It runs entirely in the page — no server needed — so teachers can use it offline in class.
+
+To preview it as a site right now: `python3 -m http.server 8001` then open `http://localhost:8001/preview.html#quiz`.
+
+---
 
 ## 1. Verified claims (live data, not slides)
 
@@ -23,21 +162,28 @@ on `data/pages.json` (seed `https://en.wikipedia.org/wiki/Search_engine`, 25 pag
 |---|---|---|
 | Scan 400 pages ~0.25 s/word; index lookup ~1/30 µs (~7M× faster) | Scan 35–42 ms vs lookup ~0.003 ms on 25 docs → **12,226–16,934× faster** | **Confirmed directionally.** Absolute factor scales with N; ranking-only path is 0.01–0.04 ms. Full end-to-end with snippets is 60–133 ms (see §5). |
 | Index build <1 s for 400 pages, ~525k entries | Build 73.1 ms for 25 pages, 17,262 terms | **Confirmed.** Linear scaling holds. |
-| BM25 `k1=1.5, b=0.75`; rare words dominate; repeats saturate; length-norm matters | `web crawler` → Web crawler (3.54) > Search engine computing (3.24); `search engine` top-3 within 0.01 (relevance tie → needs PageRank) | **Confirmed.** Matches Elastic guidance: defaults `k1∈[0.5,2.0], b∈[0.3,0.9]` are priors, not optima (Trotman et al. 2014). |
+| BM25 `k1=1.5, b=0.75`; rare words dominate; repeats saturate; length-norm matters | `web crawler` → Web crawler (3.54) > Search engine computing (3.24); `search engine` top-3 within 0.01 (relevance tie → needs PageRank) | **Confirmed.** Defaults `k1∈[0.5,2.0], b∈[0.3,0.9]` are priors, not optima (Trotman et al. 2014). |
 | PageRank `d=0.85`, 50 rounds <0.1 s; DOI/ISBN win on Wikipedia | 25-node graph converges in 50 rounds in <5 ms; indegree–PageRank log-correlation **r=0.50** | **Confirmed with nuance** — see hidden patterns §5. |
 | Search <15 ms | Rank-only 0.01–0.04 ms; with snippet 60–133 ms | **Partially confirmed.** Snippet dominates 1000:1. Lazy/deferred snippets recover <15 ms. |
 
-Research grounding (sequential 2026–2027 searches, one-at-a-time, voting across sources):
+Background:
 
-- **BM25:** Elastic *Practical BM25 Pt.3* (defaults `k1=1.2, b=0.75` work for most corpora; tune in 0.1 steps; field-weights > `k1/b`); Full-Stack Search (precision path `k1 1.2–1.5/b 0.7–0.8`, recall path `k1 1.8–2.0/b 0.4–0.5`); Lv & Zhai term-wise `k1`; Trotman et al. 2014 (no ranker dominates; stemming helps, stopping hurts).
-- **Crawl:** politeness via `robots.txt` + crawl-delay; BFS frontier + seen-set; canonical dedup; `<main>` boilerplate removal (SearchEngineBasics 2026; polite-crawler guides).
-- **PageRank:** Brin & Page 1998 (`d=0.85` empirical; power iteration; dangling-node teleport); confirmatory ACM/WWW damping-factor studies.
-- **Evaluation:** BEIR/Touché-2020 (Thakur et al. 2024, BM25 beats neural on argument retrieval); MS MARCO Web Search (Chen et al. 2024, millions of real clicks); classic `nDCG@10`/MRR + `ranx`/`ir-measures` + held-out significance (`p<0.05`).
+- **BM25:** defaults `k1=1.2, b=0.75` work for most corpora; tune in 0.1 steps; field-weights matter more than `k1/b`; precision path `k1 1.2–1.5/b 0.7–0.8`, recall path `k1 1.8–2.0/b 0.4–0.5`; term-wise `k1` variants exist; no ranker systematically dominates.
+- **Crawl:** politeness via `robots.txt` + crawl-delay; BFS frontier + seen-set; canonical dedup; `<main>` boilerplate removal.
+- **PageRank:** `d=0.85` empirical standard; power iteration; dangling-node teleport.
+- **Evaluation:** BEIR/Touché-2020 (BM25 still wins on argument retrieval); MS MARCO Web Search (millions of real clicks); `nDCG@10`/MRR with held-out significance (`p<0.05`).
 
-## 2. Repo layout (new repo, from scratch — no local code reused)
+## 2. Repo layout
 
 ```
 tinygoogle-from-scratch-2026/
+  preview.html   Interactive showcase (also the GitHub Pages site)
+  docs/
+    index.html   Same showcase for Pages /docs mode
+    demo.tape    Regenerable terminal-GIF script (vhs)
+  shots/
+    search-demo.png    Real server results for "web crawler"
+    preview-hero.png   Real Pages hero + mini-demo
   src/
     crawler.py   Part 1 — BFS + robots + canonical + <main>  (~140 lines)
     index.py     Part 2 — tokenizer + inverted index         (~60 lines)
@@ -49,9 +195,9 @@ tinygoogle-from-scratch-2026/
     run_all.sh    crawl → benchmark → serve
     results/      benchmark.json / benchmark.md (generated)
   paper/
-    PAPER.md      PhD-paper draft (extends this README)
+    PAPER.md      Paper draft (extends this README)
   data/           pages.json (generated, gitignored)
-  Dockerfile + docker-compose.yml
+  Dockerfile + docker-compose.yml + .nojekyll + LICENSE (MIT)
 ```
 
 Core: **414 lines total incl. docstrings** (~300 lines of logic), stdlib only
@@ -129,3 +275,7 @@ Phrase search via positional postings; Porter stemmer (stdlib); spelling fixer (
 
 Brin & Page 1998 (Anatomy); Robertson & Zaragoza BM25; Trotman et al. 2014; Elastic Practical BM25; Thakur et al. BEIR/Touché 2024; Chen et al. MS MARCO Web Search 2024; SearchEngineBasics 2026 (crawler/index/BM25 tutorials); Dev.to SearchLite 2026 (zero-dep engine).
 Full URLs + per-source notes in `paper/PAPER.md`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
