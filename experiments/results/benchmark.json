@@ -1,0 +1,226 @@
+{
+  "docs": 25,
+  "terms": 17262,
+  "build_ms": 73.1,
+  "E1_scan_vs_index": [
+    {
+      "term": "crawler",
+      "docs": 7,
+      "scan_ms": 41.846,
+      "lookup_ms": 0.002471,
+      "speedup": 16934.8
+    },
+    {
+      "term": "web",
+      "docs": 21,
+      "scan_ms": 35.126,
+      "lookup_ms": 0.002873,
+      "speedup": 12226.1
+    }
+  ],
+  "E2_bm25": [
+    {
+      "query": "web crawler",
+      "candidates": 7,
+      "top3": [
+        [
+          "Web crawler - Wikipedia",
+          3.538
+        ],
+        [
+          "Search engine (computing) - Wikipedia",
+          3.239
+        ],
+        [
+          "Search engine - Wikipedia",
+          3.116
+        ]
+      ]
+    },
+    {
+      "query": "search engine",
+      "candidates": 15,
+      "top3": [
+        [
+          "Search engine - Wikipedia",
+          2.252
+        ],
+        [
+          "Search engine (computing) - Wikipedia",
+          2.246
+        ],
+        [
+          "Search engine results page - Wikipedia",
+          2.242
+        ]
+      ]
+    },
+    {
+      "query": "larry page stanford",
+      "candidates": 4,
+      "top3": [
+        [
+          "Search engine - Wikipedia",
+          4.822
+        ],
+        [
+          "Google Search - Wikipedia",
+          4.121
+        ],
+        [
+          "Web crawler - Wikipedia",
+          4.119
+        ]
+      ]
+    },
+    {
+      "query": "google",
+      "candidates": 17,
+      "top3": [
+        [
+          "Google Search - Wikipedia",
+          0.985
+        ],
+        [
+          "Search engine results page - Wikipedia",
+          0.97
+        ],
+        [
+          "Search engine - Wikipedia",
+          0.962
+        ]
+      ]
+    },
+    {
+      "query": "pagerank",
+      "candidates": 6,
+      "top3": [
+        [
+          "Web crawler - Wikipedia",
+          3.016
+        ],
+        [
+          "Google Search - Wikipedia",
+          2.768
+        ],
+        [
+          "Search engine (computing) - Wikipedia",
+          2.712
+        ]
+      ]
+    },
+    {
+      "query": "wikipedia",
+      "candidates": 25,
+      "top3": [
+        [
+          "Wikipedia, the free encyclopedia",
+          0.047
+        ],
+        [
+          "Hyperlink - Wikipedia",
+          0.046
+        ],
+        [
+          "Search engine (computing) - Wikipedia",
+          0.045
+        ]
+      ]
+    }
+  ],
+  "E3_pagerank_top10": [
+    {
+      "title": "Wikipedia, the free encyclopedia",
+      "url": "https://en.wikipedia.org/wiki/Main_Page",
+      "pagerank": 0.480806,
+      "indegree": 53
+    },
+    {
+      "title": "World Wide Web - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/World_Wide_Web",
+      "pagerank": 0.040759,
+      "indegree": 34
+    },
+    {
+      "title": "Internet - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Internet",
+      "pagerank": 0.040432,
+      "indegree": 35
+    },
+    {
+      "title": "Web page - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Web_page",
+      "pagerank": 0.038228,
+      "indegree": 31
+    },
+    {
+      "title": "Web browser - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Web_browser",
+      "pagerank": 0.03622,
+      "indegree": 30
+    },
+    {
+      "title": "Hyperlink - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Hyperlink",
+      "pagerank": 0.027359,
+      "indegree": 21
+    },
+    {
+      "title": "Computer file - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Computer_file",
+      "pagerank": 0.027051,
+      "indegree": 13
+    },
+    {
+      "title": "Database - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Database",
+      "pagerank": 0.026992,
+      "indegree": 23
+    },
+    {
+      "title": "Video - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Video",
+      "pagerank": 0.023514,
+      "indegree": 8
+    },
+    {
+      "title": "Web crawler - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Web_crawler",
+      "pagerank": 0.02339,
+      "indegree": 21
+    }
+  ],
+  "pagerank_indegree_corr": 0.5,
+  "E4_latency": [
+    {
+      "query": "web crawler",
+      "hits": 7,
+      "ms": 103.17
+    },
+    {
+      "query": "search engine",
+      "hits": 10,
+      "ms": 115.548
+    },
+    {
+      "query": "larry page stanford",
+      "hits": 4,
+      "ms": 96.882
+    },
+    {
+      "query": "google",
+      "hits": 10,
+      "ms": 132.267
+    },
+    {
+      "query": "pagerank",
+      "hits": 6,
+      "ms": 62.042
+    },
+    {
+      "query": "wikipedia",
+      "hits": 10,
+      "ms": 123.906
+    }
+  ]
+}

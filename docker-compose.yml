@@ -1,0 +1,15 @@
+services:
+  tinygoogle:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data:ro
+    command: python -m src.server
+  bench:
+    build: .
+    volumes:
+      - ./data:/app/data:ro
+      - ./experiments/results:/app/experiments/results
+    command: python -m experiments.benchmark
+    profiles: ["bench"]
