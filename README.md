@@ -23,7 +23,15 @@
 
 ![Pages showcase hero with live mini-demo](shots/preview-hero.png)
 
-**🌐 Live showcase:** open [`preview.html`](preview.html) locally, or publish it free — Settings → Pages → Deploy from a branch → `main` + `/(root)` — and share `https://<you>.github.io/<repo>/preview.html`. The same file is also at [`docs/index.html`](docs/index.html) for `/docs` mode. `docs/demo.tape` regenerates the terminal GIF (`vhs docs/demo.tape`).
+**🌐 Live showcase (click to open in your browser):**
+
+| Entry | URL |
+|---|---|
+| `/` (site entry, works under either Pages source) | https://M0-AR.github.io/tinygoogle-from-scratch-2026/ |
+| `/preview.html` | https://M0-AR.github.io/tinygoogle-from-scratch-2026/preview.html |
+| `/docs/preview.html` (resolves when Pages source is `/` root) | https://M0-AR.github.io/tinygoogle-from-scratch-2026/docs/preview.html |
+
+Open [`preview.html`](preview.html) locally, or publish free — Settings → Pages → Deploy from a branch → `main` + `/docs` (recommended; mirrors make `/(root)` work too) — then click the table above. `docs/demo.tape` regenerates the terminal GIF (`vhs docs/demo.tape`).
 
 ## Table of contents
 
@@ -99,7 +107,7 @@ Try `search engine`: BM25 top-3 are within 0.01 — relevance alone ties. A **li
 - **Fusion + bold snippets** (`src/search.py`) — `BM25 + 0.25·log(PR)`, 30-word max-density window with `<b>` matches.
 - **Instant web UI** (`src/server.py`) — stdlib `http.server`, `/?q=words` → ranked HTML in milliseconds.
 - **Reproducible benchmarks** (`experiments/benchmark.py`) — E1 scan-vs-index, E2 BM25 ordering, E3 PageRank structure, E4 latency split; writes JSON + Markdown.
-- **One-command run** — local 3 commands or `docker compose up`; Pages showcase (`preview.html` + `docs/index.html` + `.nojekyll`); regenerable GIF script (`docs/demo.tape`).
+- **One-command run** — local 3 commands or `docker compose up`; Pages showcase (`docs/preview.html` canonical + `docs/index.html` entry + root `preview.html`/`index.html` mirrors + `.nojekyll` both levels); regenerable GIF script (`docs/demo.tape`).
 
 ## 👥 Who is this for — user stories
 
@@ -133,17 +141,31 @@ vhs docs/demo.tape   # needs vhs + ttyd + ffmpeg; see docs/demo.tape header
 
 ## 🌐 GitHub Pages — your repo as a website
 
-`preview.html` (root) and `docs/index.html` (identical copy) are a dependency-free static site: hero, live mini-demo, KPIs, architecture, beginner guide, features, user stories, verified numbers, 10-question quiz, video section, quickstart, Pages guide. No build step.
+`docs/preview.html` is the canonical page; `docs/index.html` is the site entry for `/docs` mode. Mirrors `preview.html` (root, identical copy) and `index.html` (root redirect + fallback links) make both Pages source settings resolve. All three are the same dependency-free static site: hero, live mini-demo, KPIs, architecture, beginner guide, features, user stories, verified numbers, 10-question quiz, video section, quickstart, Pages guide. No build step.
 
 Publish in ~1 minute:
 
 1. Push this repo to GitHub.
 2. Open **Settings → Pages**.
 3. Under **Build and deployment → Source** select **Deploy from a branch**.
-4. Branch: `main`, folder: `/(root)` (uses `preview.html`) — or `/docs` (uses `docs/index.html`).
-5. Save. Your site appears at `https://<you>.github.io/<repo>/preview.html`.
+4. Branch: `main`, folder: `/docs` (recommended) — `/(root)` also works via mirrors.
+5. Save, wait 1–2 min for the “pages build and deployment” Actions run, then click:
 
-`.nojekyll` (root + `docs/`) is already committed so Pages serves raw HTML/CSS/JS without Jekyll processing.
+| Probe | Expected |
+|---|---|
+| https://M0-AR.github.io/tinygoogle-from-scratch-2026/ | 200 (entry) |
+| https://M0-AR.github.io/tinygoogle-from-scratch-2026/preview.html | 200 |
+| https://M0-AR.github.io/tinygoogle-from-scratch-2026/docs/preview.html | 200 with source `/`, 404 with source `/docs` (by design — use the row above) |
+
+```bash
+BASE="https://M0-AR.github.io/tinygoogle-from-scratch-2026"
+for p in "" "preview.html" "docs/preview.html"; do
+  printf "%s -> " "/$p"
+  curl -s -o /dev/null -w "%{http_code}\n" "$BASE/$p"
+done
+```
+
+`.nojekyll` is committed at root **and** `docs/` so Pages serves raw HTML/CSS/JS without Jekyll processing. All asset/link paths are relative, so project Pages (served under `/<repo>/`) render correctly.
 
 ## 🧠 Interactive quiz — from scratch to pro
 
@@ -177,9 +199,11 @@ Background:
 
 ```
 tinygoogle-from-scratch-2026/
-  preview.html   Interactive showcase (also the GitHub Pages site)
+  index.html     Root entry (redirect → preview.html + fallback links)
+  preview.html   Mirror of docs/preview.html (identical; makes source `/` resolve)
   docs/
-    index.html   Same showcase for Pages /docs mode
+    index.html   Site entry for Pages /docs mode (identical showcase)
+    preview.html Canonical showcase page
     demo.tape    Regenerable terminal-GIF script (vhs)
   shots/
     search-demo.png    Real server results for "web crawler"
